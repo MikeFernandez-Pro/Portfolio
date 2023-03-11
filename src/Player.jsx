@@ -172,12 +172,12 @@ const Player = (props) => {
     // })
     
     return (
-        <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0} friction={1}>
+        <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0.2} friction={1}>
               <primitive ref={knightRef} object={knightCharacter.scene} scale={0.2} position-y={-1}/>
                 <CapsuleCollider 
-                    args={[0.25, 0.25]}
-                    position={[0, -0.4, 0]}
-                />
+                    args={[0.3, 0.25]}
+                    position={[0, -0.45, 0]}
+                />  
         </RigidBody>
     );
 };
