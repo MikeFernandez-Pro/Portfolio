@@ -1,41 +1,40 @@
 import { useGLTF, useKeyboardControls, useAnimations } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { CapsuleCollider, CuboidCollider, RigidBody} from "@react-three/rapier";
-import {useRef, useState, useEffect, useMemo} from "react"
-import * as RAPIER from '@dimforge/rapier3d-compat'
+import {useRef, useState, useEffect} from "react"
 import * as THREE from "three"
-import { useControls } from "leva";
 
 
 const Player = (props) => {
 
     const knightCharacter = useGLTF('/KnightCharacter.gltf')
     const knightAnimations = useAnimations(knightCharacter.animations, knightCharacter.scene)
-    const knightRef = useRef();
 
-    knightCharacter.scene.traverse((child) =>
-    {
-        child.castShadow = true;
-    })
-
-    const [ knightRun, setknightRun ] = useState("Idle")
-    
-
-    const [ orientation, setOrientation ] = useState(Math.PI )
-
+    // Model rigid body ref
     const knightBody = useRef();
+    // Model mesh ref
+    const knightRef = useRef();
+    // Current model orientation 
+    const [ orientation, setOrientation ] = useState(Math.PI )
+    // Current model animation
+    const [ knightRun, setknightRun ] = useState("Idle")
+
     const [subscribeKeys, getKeys] = useKeyboardControls();
 
-    const controls = useControls({
-        rotationSmoothness: {value : 8, min : 2, max: 20, step: 1}
-    })
+    // Cast model shadow
+    // knightCharacter.scene.traveraase((child) => child.castShadow = true)
 
     useFrame((state, delta) => {
 
+        // retrieve keys
         const keys = getKeys();
+
         const {forward, backward, leftward, rightward} = keys;
-        
+
+        // Keys pressed counter
         const nbOfKeysPressed = Object.values(keys).filter(key => key).length;
+
+        // Keys combination validation
         let wrongKeysCombination = nbOfKeysPressed >= 3 || (forward && backward) || (leftward && rightward)
 
         // Update character animation on movement 
@@ -45,21 +44,26 @@ const Player = (props) => {
         if (wrongKeysCombination)
             return
         
-        
-        // Model movement
+            console.log("hello")
+        /**
+         * Model movement
+         */
 
         const linvelY = knightBody.current.linvel().y;
 
-        // Reduce speed value if it's diagonal movement
+        // Reduce speed value if it's diagonal movement to always keep the same speed
         const speed = nbOfKeysPressed == 1 ? 120 * delta : Math.sqrt(2) * 60 * delta
         
         const impulse = {
             x: leftward? -speed: rightward ? speed :0, y: linvelY, z: forward? -speed: backward ? speed :0}
 
+        // Set model currennt linear velocity
         knightBody.current.setLinvel(impulse)
 
-        
-        // Model Rotation
+
+       /**
+        * Model orentation
+        */
 
         const angle =(Math.PI / 4) / 7 // rotation speed (more divided => more smooth)
 
@@ -87,72 +91,70 @@ const Player = (props) => {
            left: !forward && !backward && leftward && !rightward,
         }
         
-        /**
-         * FORWARD-RIGHT
-         */
+        // Forward-Rightward
         if (keysCombinations.forwardRight && aTanAngle != topRightAngle) {
             setOrientation(prevState => prevState + angle * (aTanAngle > topRightAngle ? -1 : 1))
         }
 
-        /**
-        * FORWARD-LEFT
-        */
+        // Forward-Leftward
         if (keysCombinations.forwardLeft && aTanAngle != topLeftAngle) {
             setOrientation(prevState => prevState + angle * (aTanAngle > topLeftAngle ? -1 : 1))
         }
 
-        /**
-        * BOTTOM-RIGHT
-        */
+        // Backward-Rightward
         if (keysCombinations.backwardRight && aTanAngle != bottomRightAngle) {
             setOrientation(prevState => prevState + angle * (aTanAngle > bottomRightAngle && aTanAngle < topLeftAngle ? -1 : 1))
         }
 
-        /**
-        * BOTTOM-LEFT
-        */
+        // Backward-Leftward
         if (keysCombinations.backwardLeft && aTanAngle != bottomLeftAngle) {
             setOrientation(prevState => prevState + angle * (aTanAngle < topRightAngle || aTanAngle > bottomLeftAngle ? -1 : 1))
         }
 
-        /**
-         * RIGHT
-         */
+        // Rightward
         if (keysCombinations.right && Math.sin(orientation) != 1) {
             setOrientation(prevState => prevState + angle * (Math.cos(orientation) > 0 ? 1 : -1))
         }
 
-        /**
-         * LEFT
-         */
+        // Leftward
         if (keysCombinations.left && Math.sin(orientation) != -1) {
             setOrientation(prevState => prevState + angle * (Math.cos(orientation) > 0 ? -1 : 1))
         } 
 
-        /**
-        * FORWARD
-        */
+        // Forward
         if (keysCombinations.forward && Math.cos(orientation) != -1) {
             setOrientation(prevState => prevState + angle * (Math.sin(orientation) > 0 ? 1 : -1))
         }   
 
-        
-        /**
-        * BACKWARD
-        */
+        // Backward
         if (keysCombinations.backward && Math.cos(orientation) != 1) {
             setOrientation(prevState => prevState + angle * (Math.sin(orientation) > 0 ? -1 : 1))
         }  
 
-        // Set the new rotation Y value of the character and lock X and Z rotations
+        // Lock X and Z model rotations and update rotation Y
         const quaternionRotation = new THREE.Quaternion()
         quaternionRotation.setFromEuler(new THREE.Euler(0, orientation, 0));
         knightBody.current.setRotation(quaternionRotation);
-    })
 
-    // const knightAction = knightAnimations.actions["Idle"]
-    // knightAction.play()
-    // const knightIdleAction = knightAnimations.actions["Idle"]
+        /**
+         * Camera Movement
+         */
+            if (!props.orbitControls) {
+            const knightPosition = knightBody.current.translation();
+    
+            const cameraPosition = new THREE.Vector3();
+            cameraPosition.copy(knightPosition)
+            cameraPosition.z += 5;
+            cameraPosition.y += 2.5;
+                
+            const cameraTarget = new THREE.Vector3()
+            cameraTarget.copy(knightPosition)
+            cameraTarget.y += 0.25;
+
+            state.camera.position.copy(cameraPosition)
+            state.camera.lookAt(cameraTarget)
+        }
+    })
    
     useEffect(() => {
         knightAnimations.actions[knightRun].reset().fadeIn(0.2).play()
@@ -161,25 +163,16 @@ const Player = (props) => {
             knightAnimations.actions[knightRun].fadeOut(0.2)
         }
     }, [knightRun])
-
-    // useEffect(() => {
-    //     subscribeKeys(
-    //         (state) => state,
-    //         (value) => {
-    //             if (value)
-                        // console.log("jump!")
-                // }
-    // })
     
     return (
-        <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0.2} friction={1}>
-              <primitive ref={knightRef} object={knightCharacter.scene} scale={0.2} position-y={-1}/>
-                <CapsuleCollider 
-                    args={[0.3, 0.25]}
-                    position={[0, -0.45, 0]}
-                />  
+         <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0.2} friction={1}>
+            <primitive ref={knightRef} object={knightCharacter.scene} scale={0.2} position-y={-1}/>
+            <CapsuleCollider 
+                args={[0.3, 0.25]}
+                position={[0, -0.45, 0]}
+            />
         </RigidBody>
     );
 };
 
-export default Player;
+export default Player;  

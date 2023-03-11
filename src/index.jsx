@@ -4,18 +4,19 @@ import { Canvas } from '@react-three/fiber'
 import Experience from './Experience.jsx'
 import { KeyboardControls } from '@react-three/drei'
 import { StrictMode } from 'react'
+import { Leva } from 'leva'
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
 root.render(
     <StrictMode>
+        <Leva />
         <KeyboardControls
             map={[
                 {name: "forward", keys: ["ArraowUp", "KeyW"]},
                 {name: "backward", keys: ["ArraowDown", "KeyS"]},
                 {name: "leftward", keys: ["ArraowLeft", "KeyA"]},
                 {name: "rightward", keys: ["ArraowRight", "KeyD"]},
-                {name: "jump", keys: ["Space"]}
             ]}
         >
             <Canvas
