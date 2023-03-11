@@ -1,6 +1,6 @@
 import { useGLTF, useKeyboardControls, useAnimations } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { CuboidCollider, RigidBody} from "@react-three/rapier";
+import { CapsuleCollider, CuboidCollider, RigidBody} from "@react-three/rapier";
 import {useRef, useState, useEffect, useMemo} from "react"
 import * as RAPIER from '@dimforge/rapier3d-compat'
 import * as THREE from "three"
@@ -13,6 +13,10 @@ const Player = (props) => {
     const knightAnimations = useAnimations(knightCharacter.animations, knightCharacter.scene)
     const knightRef = useRef();
 
+    knightCharacter.scene.traverse((child) =>
+    {
+        child.castShadow = true;
+    })
 
     const [ knightRun, setknightRun ] = useState("Idle")
     
@@ -30,51 +34,47 @@ const Player = (props) => {
 
         const keys = getKeys();
         const {forward, backward, leftward, rightward} = keys;
-      
-        const nbOfKeysPressed = Object.values(keys).filter(key => key).length;
         
-        if (nbOfKeysPressed > 0 && knightRun == "Idle") {
-            setknightRun("Run");
-        }
-        else if (nbOfKeysPressed === 0 && knightRun == "Run") {
-            setknightRun("Idle")
-        }
+        const nbOfKeysPressed = Object.values(keys).filter(key => key).length;
+        let wrongKeysCombination = nbOfKeysPressed >= 3 || (forward && backward) || (leftward && rightward)
 
-        // setknightRun(nbOfKeysPressed)
-
-        if ( nbOfKeysPressed >= 3 || (forward && backward) || (leftward && rightward))
+        // Update character animation on movement 
+        setknightRun(nbOfKeysPressed === 0 || wrongKeysCombination ? "Idle" : "Run");
+        
+        // Cancel movement on bad keys combination
+        if (wrongKeysCombination)
             return
+        
+        
+        // Model movement
 
         const linvelY = knightBody.current.linvel().y;
-        
-        const spead = nbOfKeysPressed == 1 ? 120 * delta : Math.sqrt(2) * 60 * delta
+
+        // Reduce speed value if it's diagonal movement
+        const speed = nbOfKeysPressed == 1 ? 120 * delta : Math.sqrt(2) * 60 * delta
         
         const impulse = {
-            x: leftward? -spead: rightward ? spead :0, y: linvelY, z: forward? -spead: backward ? spead :0}
+            x: leftward? -speed: rightward ? speed :0, y: linvelY, z: forward? -speed: backward ? speed :0}
 
         knightBody.current.setLinvel(impulse)
 
-        /**
-         * Model Rotation
-         */
+        
+        // Model Rotation
 
-        const angle =(Math.PI / 4) / 7// more divided more smooth
+        const angle =(Math.PI / 4) / 7 // rotation speed (more divided => more smooth)
 
-        const topLeftAngle = (225 * Math.PI / 180).toFixed(3)
+        const topLeftAngle = 3.927 // (225 * Math.PI / 180).toFixed(3)
                     
-        const bottomLeftAngle = (315 * Math.PI / 180).toFixed(3)
+        const bottomLeftAngle = 5.498 // (315 * Math.PI / 180).toFixed(3)
 
-        const topRightAngle = (135 * Math.PI / 180).toFixed(3)
+        const topRightAngle = 2.356 // (135 * Math.PI / 180).toFixed(3)
 
-        const bottomRightAngle = (45 * Math.PI / 180).toFixed(3)
+        const bottomRightAngle = 0.785 // (45 * Math.PI / 180).toFixed(3)
 
         let aTanAngle = Math.atan2(Math.sin(orientation), Math.cos(orientation))
         aTanAngle = aTanAngle < 0 ? aTanAngle + (Math.PI * 2) : aTanAngle;
         aTanAngle = Number(aTanAngle.toFixed(3))
         aTanAngle = aTanAngle == 0 ?  Number((Math.PI * 2).toFixed(3)) : aTanAngle
-
-        // console.log(`corner => ${bottomLeftAngle}, aTanAngle => ${aTanAngle}`)
-
 
         const keysCombinations = {
            forwardRight: forward && !backward && !leftward && rightward,
@@ -162,8 +162,6 @@ const Player = (props) => {
         }
     }, [knightRun])
 
-
-
     // useEffect(() => {
     //     subscribeKeys(
     //         (state) => state,
@@ -172,23 +170,14 @@ const Player = (props) => {
                         // console.log("jump!")
                 // }
     // })
-
-
-
-
+    
     return (
-        <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0.2} friction={1}>
-            <mesh>
+        <RigidBody ref={knightBody} colliders={false} position={[0, 1, 0]} restitution={0} friction={1}>
               <primitive ref={knightRef} object={knightCharacter.scene} scale={0.2} position-y={-1}/>
-                <CuboidCollider 
-                    args={[0.2, 0.2, 0.4]}
-                    position={[0, -0.75, 0]}
-                    restitution={0.2}
-                    friction={1}
+                <CapsuleCollider 
+                    args={[0.25, 0.25]}
+                    position={[0, -0.4, 0]}
                 />
-                {/* <boxGeometry args={[0.5, 0.5, 0.5]} />
-                <meshStandardMaterial flatShading color="mediumpurple" /> */}
-            </mesh> 
         </RigidBody>
     );
 };
