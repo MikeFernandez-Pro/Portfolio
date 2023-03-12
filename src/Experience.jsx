@@ -5,6 +5,7 @@ import Lights from './Lights.jsx'
 import Level from './Level.jsx'
 import Player from './Player.jsx'
 import { useControls } from 'leva'
+import Stairs from './Stairs.jsx'
 
 export default function Experience()
 {
@@ -18,11 +19,12 @@ export default function Experience()
 
         {orbitControls && <OrbitControls makeDefault />}
 
-        <Physics>
+        <Physics timeStep="vary">
             {debug && <Debug />}
             <Lights />
             <Level />
             <Player orbitControls={orbitControls} />
+            <Stairs />
         </Physics>
 
     </>
